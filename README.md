@@ -97,11 +97,6 @@ Any transport error, non-2xx HTTP response, or unexpected payload raises an unch
 `NGSignClientException`. Configuration mistakes (missing token, missing request fields)
 raise `NullPointerException` at build time.
 
-## Timeouts
-
-The NGSign sandbox can be slow (uploads may take ~80 s). The default per-request timeout
-is **5 minutes**; adjust it with `.requestTimeout(Duration.ofMinutes(10))`.
-
 ## Build
 
 ```bash
