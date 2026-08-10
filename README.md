@@ -3,8 +3,8 @@
 A small, well-documented **Java SDK** for the [NGSign](https://www.ng-sign.com) electronic
 signature API. It covers the two operations most integrations need:
 
-1. **Trigger** the electronic signature of a PDF document.
-2. **Retrieve** the status of the resulting transaction (and download the signed PDF).
+1. **Trigger** the electronic signature of one or more PDF documents, by one or more signers.
+2. **Retrieve** the status of the resulting transaction (and download the signed PDFs).
 
 - Requires **Java 17+**
 - One runtime dependency: Jackson (JSON). HTTP uses the JDK's built-in `java.net.http` client.
@@ -16,7 +16,7 @@ signature API. It covers the two operations most integrations need:
 <dependency>
     <groupId>com.ngsign</groupId>
     <artifactId>ngsign-java-client</artifactId>
-    <version>1.0</version>
+    <version>1.1.0</version>
 </dependency>
 ```
 
@@ -59,8 +59,9 @@ if (tx.isSigned()) {
 |---|---|
 | `NGSignClient` | Entry point. `builder()`, `requestSignature`, `getTransaction`, `downloadSignedDocument` |
 | `NGSignClient.Builder` | Configure base URL, API token, request timeout, custom `HttpClient` |
-| `SignatureRequest` (+ `Builder`) | Describes the document, signer and options to sign |
-| `SignatureResult` | `transactionId` + `documentIdentifier` returned after launch |
+| `SignatureRequest` (+ `Builder`) | Describes the document(s), signer(s) and options to sign |
+| `Document` | A PDF to sign: file name + bytes, with an optional fixed position |
+| `SignatureResult` | `transactionId` + `documentIdentifier(s)` returned after launch |
 | `Transaction` | A status snapshot (`status()`, `isSigned()`) |
 | `NGSignClientException` | Unchecked exception thrown on any API failure |
 
@@ -90,6 +91,33 @@ SignatureRequest.builder()
         .position(new SignaturePosition(1, 81, 44.28))   // page, xAxis, yAxis
         .build();
 ```
+
+## Multiple documents & signers
+
+A request can carry several documents and several signers — every signer is invited to sign
+every document. Add them with the repeatable `.document(...)` / `.signer(...)` (or the plural
+`.documents(list)` / `.signers(list)`):
+
+```java
+SignatureResult result = client.requestSignature(SignatureRequest.builder()
+        .document(Document.of("contract", contractPdf))
+        .document(Document.of("annex", annexPdf, new SignaturePosition(1, 81, 44.28)))
+        .signer(new Signer("Jane", "Doe", "jane@example.com", "+21600000000"))
+        .signer(new Signer("John", "Roe", "john@example.com", null))
+        .signatureType(SignatureType.CERTIFIED_TIMESTAMP)   // control the signature type
+        .mode(SignatureMode.BY_MAIL)
+        .build());
+
+for (String documentId : result.documentIdentifiers()) {
+    // poll the transaction, then download each signed document
+}
+```
+
+- `Document.of(name, bytes)` — interactive placement; `Document.of(name, bytes, position)`
+  pins the signature on that document.
+- The signature type, mode and OTP apply to all signers.
+- The single-document shortcuts (`.fileName(...)` + `.pdfContent(...)`) and
+  `result.documentIdentifier()` still work for the common one-document case.
 
 ## Error handling
 
