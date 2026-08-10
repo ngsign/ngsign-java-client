@@ -55,6 +55,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *             result.transactionId(), result.documentIdentifier());
  * }
  * }</pre>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class NGSignClient {
 

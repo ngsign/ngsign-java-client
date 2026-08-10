@@ -24,6 +24,11 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * NGSign Java client source file.
+ *
+ * @author NGSign R&amp;D (with Claude support)
+ */
 class NGSignClientTest {
 
 	private static final String STATUS_RESPONSE =

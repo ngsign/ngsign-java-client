@@ -4,6 +4,8 @@ package com.ngsign.client.model;
  * A fixed position for the signature stamp on a document.
  *
  * <p>Only used when the signer is not allowed to place the signature interactively.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class SignaturePosition {
 

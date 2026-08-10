@@ -7,6 +7,8 @@ import java.util.Objects;
  *
  * <p>Use {@link #of(String, byte[])} to let the signer place the signature interactively,
  * or {@link #of(String, byte[], SignaturePosition)} to pin it on this document.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class Document {
 

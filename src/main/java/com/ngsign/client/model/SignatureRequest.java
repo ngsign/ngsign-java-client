@@ -13,6 +13,8 @@ import java.util.Objects;
  * <p>Supports a single or several {@linkplain Document documents} and a single or several
  * {@linkplain Signer signers}. Every signer signs every document; the invitation mode, OTP
  * channel and signature type apply to all of them.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class SignatureRequest {
 

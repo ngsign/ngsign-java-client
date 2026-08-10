@@ -9,6 +9,8 @@ import java.util.List;
  * documents. A request may cover several documents, hence
  * {@link #documentIdentifiers()}; {@link #documentIdentifier()} is a shortcut for the
  * first one.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class SignatureResult {
 

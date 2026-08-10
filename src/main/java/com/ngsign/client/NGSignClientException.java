@@ -5,6 +5,8 @@ package com.ngsign.client;
  *
  * <p>It wraps transport errors (I/O, interruption), non-2xx HTTP responses and
  * unexpected payloads.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public class NGSignClientException extends RuntimeException {
 

@@ -2,6 +2,8 @@ package com.ngsign.client.model;
 
 /**
  * Lifecycle status of an NGSign transaction, as returned by the API.
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public enum TransactionStatus {
 

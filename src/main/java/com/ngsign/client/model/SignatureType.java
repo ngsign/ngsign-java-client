@@ -5,6 +5,8 @@ package com.ngsign.client.model;
  *
  * <p>The enum name is the exact value expected by the NGSign API. When in doubt,
  * {@link #CERTIFIED_TIMESTAMP} is a safe default.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public enum SignatureType {
 
