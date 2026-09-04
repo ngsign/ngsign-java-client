@@ -4,6 +4,8 @@ package com.ngsign.client.model;
  * How a signer is invited to sign a transaction.
  *
  * <p>The enum name is the exact value expected by the NGSign API.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public enum SignatureMode {
 

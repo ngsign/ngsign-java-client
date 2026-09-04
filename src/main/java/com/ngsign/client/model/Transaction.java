@@ -2,6 +2,8 @@ package com.ngsign.client.model;
 
 /**
  * A snapshot of an NGSign transaction, as returned by the status endpoint.
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class Transaction {
 

@@ -4,6 +4,8 @@ package com.ngsign.client.model;
  * One-time-password (OTP) channel used to authenticate the signer.
  *
  * <p>The enum name is the exact value expected by the NGSign API.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public enum OtpChoice {
 

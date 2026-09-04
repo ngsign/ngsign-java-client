@@ -1,31 +1,37 @@
 package com.ngsign.client.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
- * An immutable description of a document to send for signature.
+ * An immutable description of one or more documents to send for signature.
  *
  * <p>Build instances with the {@linkplain #builder() builder}, which applies sensible
  * defaults ({@code BY_MAIL}, no OTP, certified timestamp, signer places the signature).</p>
+ *
+ * <p>Supports a single or several {@linkplain Document documents} and a single or several
+ * {@linkplain Signer signers}. Every signer signs every document; the invitation mode, OTP
+ * channel and signature type apply to all of them.</p>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class SignatureRequest {
 
-	private final String fileName;
-	private final byte[] pdfContent;
-	private final Signer signer;
+	private final List<Document> documents;
+	private final List<Signer> signers;
 	private final SignatureMode mode;
 	private final OtpChoice otp;
 	private final SignatureType signatureType;
 	private final boolean chooseSignaturePosition;
 	private final SignaturePosition position;
 
-	private SignatureRequest(final String fileName, final byte[] pdfContent,
-			final Signer signer, final SignatureMode mode, final OtpChoice otp,
+	private SignatureRequest(final List<Document> documents, final List<Signer> signers,
+			final SignatureMode mode, final OtpChoice otp,
 			final SignatureType signatureType, final boolean chooseSignaturePosition,
 			final SignaturePosition position) {
-		this.fileName = fileName;
-		this.pdfContent = pdfContent;
-		this.signer = signer;
+		this.documents = List.copyOf(documents);
+		this.signers = List.copyOf(signers);
 		this.mode = mode;
 		this.otp = otp;
 		this.signatureType = signatureType;
@@ -43,30 +49,48 @@ public final class SignatureRequest {
 	}
 
 	/**
-	 * Returns the document file name.
+	 * Returns the documents to sign.
 	 *
-	 * @return the file name, without extension
+	 * @return the immutable list of documents (never empty)
+	 */
+	public List<Document> documents() {
+		return documents;
+	}
+
+	/**
+	 * Returns the signers.
+	 *
+	 * @return the immutable list of signers (never empty)
+	 */
+	public List<Signer> signers() {
+		return signers;
+	}
+
+	/**
+	 * Returns the first document file name (convenience for single-document requests).
+	 *
+	 * @return the file name of the first document, without extension
 	 */
 	public String fileName() {
-		return fileName;
+		return documents.get(0).fileName();
 	}
 
 	/**
-	 * Returns the raw PDF bytes to sign.
+	 * Returns the first document's PDF bytes (convenience for single-document requests).
 	 *
-	 * @return the PDF content
+	 * @return the PDF content of the first document
 	 */
 	public byte[] pdfContent() {
-		return pdfContent;
+		return documents.get(0).content();
 	}
 
 	/**
-	 * Returns the signer.
+	 * Returns the first signer (convenience for single-signer requests).
 	 *
-	 * @return the signer
+	 * @return the first signer
 	 */
 	public Signer signer() {
-		return signer;
+		return signers.get(0);
 	}
 
 	/**
@@ -106,7 +130,7 @@ public final class SignatureRequest {
 	}
 
 	/**
-	 * Returns the fixed signature position.
+	 * Returns the default fixed signature position (used for documents without their own).
 	 *
 	 * @return the fixed position, or {@code null} when placement is interactive
 	 */
@@ -119,9 +143,10 @@ public final class SignatureRequest {
 	 */
 	public static final class Builder {
 
+		private final List<Document> documents = new ArrayList<>();
+		private final List<Signer> signers = new ArrayList<>();
 		private String fileName;
 		private byte[] pdfContent;
-		private Signer signer;
 		private SignatureMode mode = SignatureMode.BY_MAIL;
 		private OtpChoice otp = OtpChoice.NONE;
 		private SignatureType signatureType = SignatureType.CERTIFIED_TIMESTAMP;
@@ -132,7 +157,8 @@ public final class SignatureRequest {
 		}
 
 		/**
-		 * Sets the document file name (without extension).
+		 * Sets the single document file name (without extension). Convenience paired with
+		 * {@link #pdfContent(byte[])}; for many, use {@link #document(Document)}.
 		 *
 		 * @param value the file name
 		 * @return this builder
@@ -143,7 +169,8 @@ public final class SignatureRequest {
 		}
 
 		/**
-		 * Sets the raw PDF bytes to sign.
+		 * Sets the single document PDF bytes. Convenience paired with
+		 * {@link #fileName(String)}; for several documents use {@link #document(Document)}.
 		 *
 		 * @param value the PDF content
 		 * @return this builder
@@ -154,13 +181,52 @@ public final class SignatureRequest {
 		}
 
 		/**
-		 * Sets the signer.
+		 * Adds a document to sign. Call several times for multiple documents.
+		 *
+		 * @param value the document
+		 * @return this builder
+		 */
+		public Builder document(final Document value) {
+			this.documents.add(Objects.requireNonNull(value, "document is required"));
+			return this;
+		}
+
+		/**
+		 * Adds several documents to sign.
+		 *
+		 * @param values the documents
+		 * @return this builder
+		 */
+		public Builder documents(final List<Document> values) {
+			Objects.requireNonNull(values, "documents is required");
+			for (final Document value : values) {
+				document(value);
+			}
+			return this;
+		}
+
+		/**
+		 * Adds a signer. Call several times for multiple signers.
 		 *
 		 * @param value the signer
 		 * @return this builder
 		 */
 		public Builder signer(final Signer value) {
-			this.signer = value;
+			this.signers.add(Objects.requireNonNull(value, "signer is required"));
+			return this;
+		}
+
+		/**
+		 * Adds several signers.
+		 *
+		 * @param values the signers
+		 * @return this builder
+		 */
+		public Builder signers(final List<Signer> values) {
+			Objects.requireNonNull(values, "signers is required");
+			for (final Signer value : values) {
+				signer(value);
+			}
 			return this;
 		}
 
@@ -198,7 +264,8 @@ public final class SignatureRequest {
 		}
 
 		/**
-		 * Sets a fixed signature position and disables interactive placement.
+		 * Sets a default fixed signature position and disables interactive placement.
+		 * Documents carrying their own position override this one.
 		 *
 		 * @param value the fixed position
 		 * @return this builder
@@ -210,16 +277,24 @@ public final class SignatureRequest {
 		}
 
 		/**
-		 * Builds the immutable request. The file name, PDF content and signer are required.
+		 * Builds the immutable request. At least one document and one signer are required.
 		 *
 		 * @return the built {@link SignatureRequest}
 		 */
 		public SignatureRequest build() {
-			Objects.requireNonNull(fileName, "fileName is required");
-			Objects.requireNonNull(pdfContent, "pdfContent is required");
-			Objects.requireNonNull(signer, "signer is required");
-			return new SignatureRequest(fileName, pdfContent, signer, mode, otp,
-					signatureType, chooseSignaturePosition, position);
+			if (fileName != null || pdfContent != null) {
+				Objects.requireNonNull(fileName, "fileName is required");
+				Objects.requireNonNull(pdfContent, "pdfContent is required");
+				documents.add(0, Document.of(fileName, pdfContent));
+			}
+			if (documents.isEmpty()) {
+				throw new NullPointerException("at least one document is required");
+			}
+			if (signers.isEmpty()) {
+				throw new NullPointerException("at least one signer is required");
+			}
+			return new SignatureRequest(documents, signers, mode, otp, signatureType,
+					chooseSignaturePosition, position);
 		}
 	}
 }

@@ -2,6 +2,8 @@ package com.ngsign.client.model;
 
 /**
  * A person invited to sign a document.
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class Signer {
 

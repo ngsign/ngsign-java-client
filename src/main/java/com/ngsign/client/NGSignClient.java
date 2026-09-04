@@ -1,5 +1,7 @@
 package com.ngsign.client;
 
+import com.ngsign.client.model.Document;
+import com.ngsign.client.model.SignaturePosition;
 import com.ngsign.client.model.SignatureRequest;
 import com.ngsign.client.model.SignatureResult;
 import com.ngsign.client.model.Signer;
@@ -14,7 +16,9 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -51,6 +55,8 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
  *             result.transactionId(), result.documentIdentifier());
  * }
  * }</pre>
+ *
+ * @author NGSign R&amp;D (with Claude support)
  */
 public final class NGSignClient {
 
@@ -88,15 +94,17 @@ public final class NGSignClient {
 	}
 
 	/**
-	 * Uploads a PDF document and launches its signature in a single call.
+	 * Uploads the request's document(s) and launches their signature in a single call.
+	 *
+	 * <p>Every {@linkplain SignatureRequest#signers() signer} is invited to sign every
+	 * {@linkplain SignatureRequest#documents() document}.</p>
 	 *
 	 * @param request the signature request
 	 * @return the transaction and document identifiers to poll and download later
 	 */
 	public SignatureResult requestSignature(final SignatureRequest request) {
 		Objects.requireNonNull(request, "request is required");
-		final SignatureResult uploaded = uploadDocument(
-				request.fileName(), request.pdfContent());
+		final SignatureResult uploaded = uploadDocuments(request.documents());
 		launchSignature(uploaded, request);
 		return uploaded;
 	}
@@ -137,50 +145,74 @@ public final class NGSignClient {
 		return sendForBytes(request).body();
 	}
 
-	private SignatureResult uploadDocument(final String fileName, final byte[] pdf) {
+	private SignatureResult uploadDocuments(final List<Document> docs) {
 		final ArrayNode payload = objectMapper.createArrayNode();
-		final ObjectNode file = payload.addObject();
-		file.put("fileName", fileName);
-		file.put("fileExtension", "pdf");
-		file.put("fileBase64", Base64.getEncoder().encodeToString(pdf));
+		for (final Document doc : docs) {
+			final ObjectNode file = payload.addObject();
+			file.put("fileName", doc.fileName());
+			file.put("fileExtension", "pdf");
+			file.put("fileBase64", Base64.getEncoder().encodeToString(doc.content()));
+		}
 		final HttpResponse<String> response = post(UPLOAD_PATH, payload);
 		final JsonNode object = readTree(response.body()).path("object");
 		final String transactionId = object.path("uuid").asText(null);
-		final JsonNode firstPdf = object.path("pdfs").path(0);
-		final String documentId = firstPdf.path("identifier").asText(null);
-		if (transactionId == null || documentId == null) {
+		final List<String> identifiers = new ArrayList<>();
+		for (final JsonNode pdf : object.path("pdfs")) {
+			final String id = pdf.path("identifier").asText(null);
+			if (id != null) {
+				identifiers.add(id);
+			}
+		}
+		if (transactionId == null || identifiers.size() != docs.size()) {
 			throw new NGSignClientException(
 					"Unexpected NGSign upload response: " + response.body());
 		}
-		return new SignatureResult(transactionId, documentId);
+		return new SignatureResult(transactionId, identifiers);
 	}
 
 	private void launchSignature(final SignatureResult uploaded,
 			final SignatureRequest request) {
 		final ObjectNode root = objectMapper.createObjectNode();
 		final ArrayNode sigConf = root.putArray("sigConf");
-		final ObjectNode entry = sigConf.addObject();
-		final Signer signer = request.signer();
-		final ObjectNode signerNode = entry.putObject("signer");
-		signerNode.put("firstName", signer.firstName());
-		signerNode.put("lastName", signer.lastName());
-		signerNode.put("email", signer.email());
-		final String phone = signer.phoneNumber() == null ? "" : signer.phoneNumber();
-		signerNode.put("phoneNumber", phone);
-		entry.put("sigType", request.signatureType().name());
-		entry.put("choosePosition", request.chooseSignaturePosition());
-		final ObjectNode doc = entry.putArray("docsConfigs").addObject();
-		doc.put("documentName", request.fileName());
-		doc.put("documentExtension", "pdf");
-		doc.put("identifier", uploaded.documentIdentifier());
-		if (!request.chooseSignaturePosition() && request.position() != null) {
-			doc.put("page", request.position().page());
-			doc.put("xAxis", request.position().xAxis());
-			doc.put("yAxis", request.position().yAxis());
+		final List<Document> docs = request.documents();
+		final List<String> identifiers = uploaded.documentIdentifiers();
+		for (final Signer signer : request.signers()) {
+			final ObjectNode entry = sigConf.addObject();
+			final ObjectNode signerNode = entry.putObject("signer");
+			signerNode.put("firstName", signer.firstName());
+			signerNode.put("lastName", signer.lastName());
+			signerNode.put("email", signer.email());
+			final String phone = signer.phoneNumber();
+			signerNode.put("phoneNumber", phone == null ? "" : phone);
+			entry.put("sigType", request.signatureType().name());
+			entry.put("choosePosition", request.chooseSignaturePosition());
+			final ArrayNode docsConfigs = entry.putArray("docsConfigs");
+			for (int i = 0; i < docs.size(); i++) {
+				final Document document = docs.get(i);
+				final ObjectNode doc = docsConfigs.addObject();
+				doc.put("documentName", document.fileName());
+				doc.put("documentExtension", "pdf");
+				doc.put("identifier", identifiers.get(i));
+				addPosition(doc, request, document);
+			}
+			entry.put("mode", request.mode().name());
+			entry.put("otp", request.otp().name());
 		}
-		entry.put("mode", request.mode().name());
-		entry.put("otp", request.otp().name());
 		post(launchPath(uploaded.transactionId()), root);
+	}
+
+	private static void addPosition(final ObjectNode doc, final SignatureRequest request,
+			final Document document) {
+		if (request.chooseSignaturePosition()) {
+			return;
+		}
+		final SignaturePosition pos = document.position() != null
+				? document.position() : request.position();
+		if (pos != null) {
+			doc.put("page", pos.page());
+			doc.put("xAxis", pos.xAxis());
+			doc.put("yAxis", pos.yAxis());
+		}
 	}
 
 	private HttpResponse<String> post(final String path, final JsonNode body) {
