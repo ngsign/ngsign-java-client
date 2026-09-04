@@ -140,6 +140,13 @@ and `-javadoc` jars.
 - JDK 17 or newer
 - Maven 3.8+
 
----
+## License
 
-© 2026 NG Technologies.
+GNU General Public License v3.0 (see [LICENSE](LICENSE)).
+
+This plugin integrates with Maarch Courrier, itself distributed under GPLv3: it
+extends its classes and runs inside its process (a derivative work).
+
+Copyright © 2026 NG Technologies. This program is free software: you can
+redistribute it and/or modify it under the terms of the GNU General Public
+License version 3 as published by the Free Software Foundation.
